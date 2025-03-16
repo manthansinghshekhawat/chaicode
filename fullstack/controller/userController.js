@@ -16,7 +16,7 @@ const registerUser = async (req, res) => {
         message: "User already exist",
       });
     }
-    const user = User.create({
+    const user =await User.create({
       name,
       email,
       password,
@@ -45,13 +45,14 @@ const registerUser = async (req, res) => {
       from: process.env.MAIL_TRAP_SENDER_EMAIL, // sender address
       to: user.email, // list of receivers
       subject: "Verify your email!", // Subject line
-      text: `Please click on the following link ${process.env.BASE_URL}/api/v1/users/verify/${token}`, // plain text body
+      text: `Please click on the following link 127.0.0.1:4000/api/v1/users/verify/${token}`, // plain text body
     };
     await transporter.sendMail(mailOptions);
     res.status(200).json({
       message: "user created sucessfully ",
     });
   } catch (error) {
+    console.log(error)
     res.status(400).json({
       message: "User not registered",
       error,
@@ -77,35 +78,39 @@ const verifyUser = async (req, res) => {
   user.isVerified = true;
   user.verificationToken = undefined;
   await user.save();
+  return res.status(200).json({
+    message: "User verifed sucessfully"
+  })
 };
 
 
 
 const login = async (req, res) => {
   const { email, password } = req.body;
-
+  console.log(email,password)
   if (!email || !password) {
-    res.status(400).json({
+    return res.status(400).json({
       message: "All fields are required",
     });
   }
 
   try {
-    const user = User.findOne({ email });
+    const user =await User.findOne({ email });
     if (!email) {
-      res.status(400).json({
-        message: "Invalid email or password",
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
       return res.status(400).json({
         message: "Invalid email or password",
       });
     }
+    console.log(email)
 
+    const isMatch = await  bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log("maching not ")
+      return res.status(400).json({
+        message: "Invalid email or password",
+      });
+    }
+    console.log("ohooo")
     const token = jwt.sign(
       { id: user._id, role: user.role },
 
@@ -120,8 +125,8 @@ const login = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     };
     res.cookie("token", token, cookieOptions);
-
-    res.status(200).json({
+    console.log("yha aagaaya")
+    return res.status(200).json({
       success: true,
       message: "Login successful",
       token,
@@ -131,7 +136,9 @@ const login = async (req, res) => {
         role: user.role,
       },
     });
-  } catch (error) {}
+  } catch (error) {
+
+  }
 };
 
 

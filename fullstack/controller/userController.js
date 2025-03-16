@@ -1,6 +1,8 @@
 import User from "../models/user_model.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -59,14 +61,12 @@ const registerUser = async (req, res) => {
   // await db();
 };
 
-const verifyUser = async (req,res) => {
-  const { token } = req.params
+const verifyUser = async (req, res) => {
+  const { token } = req.params;
   if (!token) {
     return res.status(400).json({
-      message: "Invalid token"
-
-    })
-
+      message: "Invalid token",
+    });
   }
   const user = await User.findOne({ verificationToken: token });
   if (!user) {
@@ -74,13 +74,66 @@ const verifyUser = async (req,res) => {
       message: "Invalid token",
     });
   }
-  user.isVerified = true
-  user.verificationToken = undefined
-  await user.save()
-  
-
-}
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  await user.save();
+};
 
 
 
-export { registerUser, verifyUser };
+const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400).json({
+      message: "All fields are required",
+    });
+  }
+
+  try {
+    const user = User.findOne({ email });
+    if (!email) {
+      res.status(400).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+
+      "shhhhh",
+      {
+        expiresIn: "24h",
+      }
+    );
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    };
+    res.cookie("token", token, cookieOptions);
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {}
+};
+
+
+
+export { registerUser, verifyUser, login };

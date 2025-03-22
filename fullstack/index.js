@@ -10,6 +10,7 @@ db();
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(
   cors({
     origin: "*",
@@ -19,7 +20,7 @@ app.use(
 );
 
 app.use("/api/v1/users", userRoutes);
-app.use(cookieParser())
+
 
 
 

@@ -1,8 +1,8 @@
-import User from "../models/user_model.js";
-import crypto from "crypto";
-import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import User from "../models/user_model.js";
 
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -16,7 +16,7 @@ const registerUser = async (req, res) => {
         message: "User already exist",
       });
     }
-    const user =await User.create({
+    const user = await User.create({
       name,
       email,
       password,
@@ -52,7 +52,7 @@ const registerUser = async (req, res) => {
       message: "user created sucessfully ",
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(400).json({
       message: "User not registered",
       error,
@@ -79,15 +79,13 @@ const verifyUser = async (req, res) => {
   user.verificationToken = undefined;
   await user.save();
   return res.status(200).json({
-    message: "User verifed sucessfully"
-  })
+    message: "User verifed sucessfully",
+  });
 };
-
-
 
 const login = async (req, res) => {
   const { email, password } = req.body;
-  console.log(email,password)
+  console.log(email, password);
   if (!email || !password) {
     return res.status(400).json({
       message: "All fields are required",
@@ -95,26 +93,25 @@ const login = async (req, res) => {
   }
 
   try {
-    const user =await User.findOne({ email });
+    const user = await User.findOne({ email });
     if (!email) {
       return res.status(400).json({
         message: "Invalid email or password",
       });
     }
-    console.log(email)
+    console.log(email);
 
-    const isMatch = await  bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log("maching not ")
+      console.log("maching not ");
       return res.status(400).json({
         message: "Invalid email or password",
       });
     }
-    console.log("ohooo")
+    console.log("ohooo");
     const token = jwt.sign(
       { id: user._id, role: user.role },
-
-      "shhhhh",
+      process.env.JWT_SECRET,
       {
         expiresIn: "24h",
       }
@@ -125,7 +122,6 @@ const login = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     };
     res.cookie("token", token, cookieOptions);
-    console.log("yha aagaaya")
     return res.status(200).json({
       success: true,
       message: "Login successful",
@@ -136,11 +132,64 @@ const login = async (req, res) => {
         role: user.role,
       },
     });
-  } catch (error) {
+  } catch (error) {}
+};
 
+const getMe = async (req, res) => {
+  try {
+    console.log("readed at profile level");
+    console.log("user data", req.user);
+
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Error in getMe:", error);
+    // Ensure only one response is sent
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Server error",
+      });
+    }
   }
 };
 
+const logoutUser = async (req, res) => {
+  try {
+    res.cookie("token", "", {});
+    return res.status(200).json({
+      sucess: true,
+      message: "logout sucessfully",
+    });
+  } catch (error) {}
+};
 
+const forgotPassword = async (req, res) => {
+  try {
+  } catch (error) {}
+};
 
-export { registerUser, verifyUser, login };
+const resetPassword = async (req, res) => {
+  try {
+  } catch (error) {}
+};
+
+export {
+  forgotPassword,
+  getMe,
+  login,
+  logoutUser,
+  registerUser,
+  resetPassword,
+  verifyUser,
+};
